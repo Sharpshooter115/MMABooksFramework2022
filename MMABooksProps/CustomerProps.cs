@@ -6,5 +6,8 @@ namespace MMABooksProps
 {
     public class CustomerProps
     {
+        public int Customerid { get; set; }
+        public string Name { get; set; }
+
     }
 }
