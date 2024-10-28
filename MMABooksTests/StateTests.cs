@@ -66,7 +66,7 @@ namespace MMABooksTests
         public void TestUpdate()
         {
             State s = new State("OR");
-            s.Name = "Edited Name";
+            s.Name = "Ore";
             s.Save();
 
             State s2 = new State("OR");
