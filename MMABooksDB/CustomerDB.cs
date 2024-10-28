@@ -23,11 +23,11 @@ namespace MMABooksDB
             using (DBCommand command = new DBCommand("usp_CustomerCreate", mConnection))
             {
                 command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("name", props.Name);
-                command.Parameters.AddWithValue("address", props.Address);
-                command.Parameters.AddWithValue("city", props.City);
-                command.Parameters.AddWithValue("state", props.State);
-                command.Parameters.AddWithValue("zipcode", props.ZipCode);
+                command.Parameters.AddWithValue("name_p", props.Name);
+                command.Parameters.AddWithValue("address_p", props.Address);
+                command.Parameters.AddWithValue("city_p", props.City);
+                command.Parameters.AddWithValue("state_p", props.State);
+                command.Parameters.AddWithValue("zipcode_p", props.ZipCode);
                 command.Parameters.Add("custId", DBDbType.Int32).Direction = ParameterDirection.Output;
 
                 try
@@ -55,10 +55,10 @@ namespace MMABooksDB
         {
             CustomerProps props = new CustomerProps();
 
-            using (DBCommand command = new DBCommand("usp_CustomerSelect", mConnection))
+            using (DBCommand command = new DBCommand("usp_CustomerRetrieve", mConnection)) // Update procedure name here
             {
                 command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("customerId", key);
+                command.Parameters.AddWithValue("custId", key);
 
                 using (DBDataReader reader = RunProcedure(command))
                 {
@@ -104,12 +104,12 @@ namespace MMABooksDB
             using (DBCommand command = new DBCommand("usp_CustomerUpdate", mConnection))
             {
                 command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("customerId", props.CustomerID);
-                command.Parameters.AddWithValue("name", props.Name);
-                command.Parameters.AddWithValue("address", props.Address);
-                command.Parameters.AddWithValue("city", props.City);
-                command.Parameters.AddWithValue("state", props.State);
-                command.Parameters.AddWithValue("zipcode", props.ZipCode);
+                command.Parameters.AddWithValue("custId", props.CustomerID);
+                command.Parameters.AddWithValue("name_p", props.Name);
+                command.Parameters.AddWithValue("address_p", props.Address);
+                command.Parameters.AddWithValue("city_p", props.City);
+                command.Parameters.AddWithValue("state_p", props.State);
+                command.Parameters.AddWithValue("zipcode_p", props.ZipCode);
                 command.Parameters.AddWithValue("conCurrId", props.ConcurrencyID);
 
                 try
@@ -140,7 +140,7 @@ namespace MMABooksDB
             using (DBCommand command = new DBCommand("usp_CustomerDelete", mConnection))
             {
                 command.CommandType = CommandType.StoredProcedure;
-                command.Parameters.AddWithValue("customerId", props.CustomerID);
+                command.Parameters.AddWithValue("custId", props.CustomerID);
                 command.Parameters.AddWithValue("conCurrId", props.ConcurrencyID);
 
                 try

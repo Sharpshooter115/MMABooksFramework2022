@@ -15,7 +15,6 @@ namespace MMABooksProps
         public string City { get; set; } = "";
         public string State { get; set; } = "";
         public string ZipCode { get; set; } = "";
-
         public int ConcurrencyID { get; set; } = 0;
         #endregion
 
