@@ -21,18 +21,15 @@ namespace MMABooksProps
 
         public object Clone()
         {
-            return new ProductProps();
+            return new ProductProps
             {
-                ProductID = this.ProductID ,
-                ProductCode = this.ProductCode ,
-                Description = this.Description ,
-                UnitPrice = this.UnitPrice ,
-                OnHandQuantity = this.OnHandQuantity ,
+                ProductID = this.ProductID,
+                ProductCode = this.ProductCode,
+                Description = this.Description,
+                UnitPrice = this.UnitPrice,
+                OnHandQuantity = this.OnHandQuantity,
                 ConcurrencyID = this.ConcurrencyID
-
-
             };
-
         }
         public string GetState()
         {
