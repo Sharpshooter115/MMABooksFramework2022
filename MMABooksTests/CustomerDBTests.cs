@@ -92,6 +92,15 @@ namespace MMABooksTests
             Assert.IsTrue(result);
         }
 
+        [Test]
+        public void RetrieveAll_Returns_ListOfCustomers()
+        {
+            var result = _customerDB.RetrieveAll() as List<CustomerProps>;
+
+            Assert.IsNotNull(result);
+            Assert.IsTrue(result.Count > 0);
+        }
+
         [TearDown]
         public void Cleanup()
         {
