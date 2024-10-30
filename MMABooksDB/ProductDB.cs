@@ -9,7 +9,6 @@ using DBConnection = MySql.Data.MySqlClient.MySqlConnection;
 using DBCommand = MySql.Data.MySqlClient.MySqlCommand;
 using DBDbType = MySql.Data.MySqlClient.MySqlDbType;
 
-
 namespace MMABooksDB
 {
     public class ProductDB : BaseSQLDB, IReadDB, IWriteDB
@@ -18,194 +17,150 @@ namespace MMABooksDB
         public ProductDB(DBConnection cn) : base(cn) { }
 
         public IBaseProps Create(IBaseProps p)
-
         {
-            int rowsAffected = 0;
-            ProductProps props = (ProductProps)p;
-
-            DBCommand command = new DBCommand();
-            command.CommandText = "usp_ProductCreate";
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.AddWithValue("productCode", props.ProductCode);
-            command.Parameters.AddWithValue("description", props.Description);
-            command.Parameters.AddWithValue("unitPrice", props.UnitPrice);
-            command.Parameters.AddWithValue("onHandQuantity", props.OnHandQuantity);
-
-            try
+            var props = (ProductProps)p;
+            using (var command = new DBCommand())
             {
+                command.CommandText = "usp_ProductCreate";
+                command.CommandType = CommandType.StoredProcedure;
 
-                rowsAffected = RunNonQueryProcedure(command);
-                if (rowsAffected == 1)
+                command.Parameters.AddWithValue("productCode_p", props.ProductCode);
+                command.Parameters.AddWithValue("description_p", props.Description);
+                command.Parameters.AddWithValue("unitPrice_p", props.UnitPrice);
+                command.Parameters.AddWithValue("onHandQuantity_p", props.OnHandQuantity);
+
+                var outputParam = command.Parameters.Add("prodId", DBDbType.Int32);
+                outputParam.Direction = ParameterDirection.Output;
+
+                try
                 {
-
-                    props.ConcurrencyID = 1;
-                    return props;
-
-                }
-
-                else
+                    int rowsAffected = RunNonQueryProcedure(command);
+                    if (rowsAffected == 1)
+                    {
+                        props.ProductID = Convert.ToInt32(outputParam.Value);
+                        props.ConcurrencyID = 1;
+                        return props;
+                    }
                     throw new Exception("Unable to insert record. " + props.GetState());
-            }
-
-            catch (Exception e)
-            {
-                throw;
-            }
-            finally
-            {
-                if (mConnection.State == ConnectionState.Open)
-                    mConnection.Close();
-
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception("Error creating product: " + ex.Message, ex);
+                }
             }
         }
 
         public bool Delete(IBaseProps p)
         {
-            ProductProps props = (ProductProps)p;
-            int rowsAffected = 0;
-
-            DBCommand command = new DBCommand();
-            command.CommandText = "usp_ProductDelete";
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.Add("productId", DBDbType.Int32);
-            command.Parameters.Add("conCurrId", DBDbType.Int32);
-            command.Parameters["productId"].Value = props.ProductID;
-            command.Parameters["conCurrId"].Value = props.ConcurrencyID;
-
-            try
+            var props = (ProductProps)p;
+            using (var command = new DBCommand())
             {
-                rowsAffected = RunNonQueryProcedure(command);
-                if (rowsAffected == 1)
+                command.CommandText = "usp_ProductDelete";
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.Add("prodId", DBDbType.Int32).Value = props.ProductID;
+                command.Parameters.Add("concurrencyId_p", DBDbType.Int32).Value = props.ConcurrencyID;
+
+                try
                 {
-                    return true;
-                }
-                else
-                {
+                    int rowsAffected = RunNonQueryProcedure(command);
+                    if (rowsAffected == 1)
+                    {
+                        return true;
+                    }
                     throw new Exception("Record cannot be deleted. It has been edited by another user.");
                 }
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
-            finally
-            {
-                if (mConnection.State == ConnectionState.Open)
-                    mConnection.Close();
+                catch (Exception ex)
+                {
+                    throw new Exception("Error deleting product: " + ex.Message, ex);
+                }
             }
         }
+
         public IBaseProps Retrieve(object key)
         {
-            DBDataReader data = null;
-            ProductProps props = new ProductProps();
-            DBCommand command = new DBCommand();
-
-            command.CommandText = "usp_ProductSelect";
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.Add("productId", DBDbType.Int32);
-            command.Parameters["productId"].Value = key;
-
-            try
+            var props = new ProductProps();
+            using (var command = new DBCommand())
             {
-                data = RunProcedure(command);
-                if (!data.IsClosed)
+                command.CommandText = "usp_ProductSelect";
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.Add("prodId", DBDbType.Int32).Value = key;
+
+                using (var data = RunProcedure(command))
                 {
-                    if (data.Read())
+                    if (!data.IsClosed && data.Read())
                     {
                         props.SetState(data);
+                        return props;
                     }
-                    else
-                        throw new Exception("Record does not exist in the database.");
-                }
-                return props;
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
-            finally
-            {
-                if (data != null)
-                {
-                    if (!data.IsClosed)
-                        data.Close();
+                    throw new Exception("Record does not exist in the database.");
                 }
             }
         }
+
+        public ProductProps RetrieveByProductCode(string productCode)
+        {
+            var props = new ProductProps();
+            using (var command = new DBCommand())
+            {
+                command.CommandText = "usp_ProductSelectByCode";
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.Add("productCode", DBDbType.VarChar).Value = productCode;
+
+                using (var data = RunProcedure(command))
+                {
+                    if (!data.IsClosed && data.Read())
+                    {
+                        props.SetState(data);
+                        return props;
+                    }
+                    throw new Exception("Record does not exist in the database.");
+                }
+            }
+        }
+
         public object RetrieveAll()
         {
-            List<ProductProps> list = new List<ProductProps>();
-            DBDataReader reader = null;
-            ProductProps props;
-
-            try
+            var list = new List<ProductProps>();
+            using (var reader = RunProcedure("usp_ProductSelectAll"))
             {
-                reader = RunProcedure("usp_ProductSelectAll");
-                if (!reader.IsClosed)
+                while (reader.Read())
                 {
-                    while (reader.Read())
-                    {
-                        props = new ProductProps();
-                        props.SetState(reader);
-                        list.Add(props);
-                    }
-                }
-                return list;
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
-            finally
-            {
-                if (!reader.IsClosed)
-                {
-                    reader.Close();
+                    var props = new ProductProps();
+                    props.SetState(reader);
+                    list.Add(props);
                 }
             }
+            return list;
         }
+
         public bool Update(IBaseProps p)
         {
-            int rowsAffected = 0;
-            ProductProps props = (ProductProps)p;
-
-            DBCommand command = new DBCommand();
-            command.CommandText = "usp_ProductUpdate";
-            command.CommandType = CommandType.StoredProcedure;
-            command.Parameters.Add("productId", DBDbType.Int32);
-            command.Parameters.Add("productCode", DBDbType.VarChar);
-            command.Parameters.Add("description", DBDbType.VarChar);
-            command.Parameters.Add("unitPrice", DBDbType.Decimal);
-            command.Parameters.Add("onHandQuantity", DBDbType.Int32);
-            command.Parameters.Add("conCurrId", DBDbType.Int32);
-            command.Parameters["productId"].Value = props.ProductID;
-            command.Parameters["productCode"].Value = props.ProductCode;
-            command.Parameters["description"].Value = props.Description;
-            command.Parameters["unitPrice"].Value = props.UnitPrice;
-            command.Parameters["onHandQuantity"].Value = props.OnHandQuantity;
-            command.Parameters["conCurrId"].Value = props.ConcurrencyID;
-
-            try
+            var props = (ProductProps)p;
+            using (var command = new DBCommand())
             {
-                rowsAffected = RunNonQueryProcedure(command);
-                if (rowsAffected == 1)
+                command.CommandText = "usp_ProductUpdate";
+                command.CommandType = CommandType.StoredProcedure;
+                command.Parameters.Add("prodId", DBDbType.Int32).Value = props.ProductID;
+                command.Parameters.Add("productCode_p", DBDbType.VarChar).Value = props.ProductCode;
+                command.Parameters.Add("description_p", DBDbType.VarChar).Value = props.Description;
+                command.Parameters.Add("unitPrice_p", DBDbType.Decimal).Value = props.UnitPrice;
+                command.Parameters.Add("onHandQuantity_p", DBDbType.Int32).Value = props.OnHandQuantity;
+                command.Parameters.Add("concurrencyId_p", DBDbType.Int32).Value = props.ConcurrencyID;
+
+                try
                 {
-                    props.ConcurrencyID++;
-                    return true;
-                }
-                else
-                {
+                    int rowsAffected = RunNonQueryProcedure(command);
+                    if (rowsAffected == 1)
+                    {
+                        props.ConcurrencyID++;
+                        return true;
+                    }
                     throw new Exception("Record cannot be updated. It has been edited by another user.");
                 }
-            }
-            catch (Exception e)
-            {
-                throw;
-            }
-            finally
-            {
-                if (mConnection.State == ConnectionState.Open)
-                    mConnection.Close();
+                catch (Exception ex)
+                {
+                    throw new Exception("Error updating product: " + ex.Message, ex);
+                }
             }
         }
     }

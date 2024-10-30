@@ -1,114 +1,96 @@
 ﻿using System;
-
 using MMABooksTools;
 using MMABooksProps;
 using MMABooksDB;
-
 using System.Collections.Generic;
 
 namespace MMABooksBusiness
 {
     public class Product : BaseBusiness
     {
+        public int ProductID => ((ProductProps)mProps).ProductID;
+
         public string ProductCode
         {
-            get
-            {
-                return ((ProductProps)mProps).ProductCode;
-            }
+            get => ((ProductProps)mProps).ProductCode;
             set
             {
-                if (!(value == ((ProductProps)mProps).ProductCode))
+                if (value.Trim().Length < 1 || value.Trim().Length > 10)
                 {
-                    if (value.Trim().Length >= 1 && value.Trim().Length <= 10)
-                    {
-                        mRules.RuleBroken("ProductCode", false);
-                        ((ProductProps)mProps).ProductCode = value;
-                        mIsDirty = true;
-                    }
-                    else
-                    {
-                        throw new ArgumentOutOfRangeException("ProductCode must be no more than 10 characters long.");
-                    }
+                    throw new ArgumentOutOfRangeException("ProductCode must be between 1 and 10 characters long.");
+                }
+
+                if (value != ((ProductProps)mProps).ProductCode)
+                {
+                    mRules.RuleBroken("ProductCode", false);
+                    ((ProductProps)mProps).ProductCode = value;
+                    mIsDirty = true;
                 }
             }
         }
 
         public string Description
         {
-            get
-            {
-                return ((ProductProps)mProps).Description;
-            }
+            get => ((ProductProps)mProps).Description;
             set
             {
-                if (!(value == ((ProductProps)mProps).Description))
+                if (value.Trim().Length < 1 || value.Trim().Length > 50)
                 {
-                    if (value.Trim().Length >= 1 && value.Trim().Length <= 50)
-                    {
-                        mRules.RuleBroken("Description", false);
-                        ((ProductProps)mProps).Description = value;
-                        mIsDirty = true;
-                    }
-                    else
-                    {
-                        throw new ArgumentOutOfRangeException("Description must be no more than 50 characters long.");
-                    }
+                    throw new ArgumentOutOfRangeException("Description must be between 1 and 50 characters long.");
+                }
+
+                if (value != ((ProductProps)mProps).Description)
+                {
+                    mRules.RuleBroken("Description", false);
+                    ((ProductProps)mProps).Description = value;
+                    mIsDirty = true;
                 }
             }
         }
 
         public decimal UnitPrice
         {
-            get
-            {
-                return ((ProductProps)mProps).UnitPrice;
-            }
+            get => ((ProductProps)mProps).UnitPrice;
             set
             {
-                if (value >= 0)
-                {
-                    mRules.RuleBroken("UnitPrice", false);
-                    ((ProductProps)mProps).UnitPrice = value;
-                    mIsDirty = true;
-                }
-                else
+                if (value < 0)
                 {
                     throw new ArgumentOutOfRangeException("UnitPrice must be non-negative.");
                 }
+
+                mRules.RuleBroken("UnitPrice", false);
+                ((ProductProps)mProps).UnitPrice = value;
+                mIsDirty = true;
             }
         }
 
         public int OnHandQuantity
         {
-            get
-            {
-                return ((ProductProps)mProps).OnHandQuantity;
-            }
+            get => ((ProductProps)mProps).OnHandQuantity;
             set
             {
-                if (value >= 0)
-                {
-                    mRules.RuleBroken("OnHandQuantity", false);
-                    ((ProductProps)mProps).OnHandQuantity = value;
-                    mIsDirty = true;
-                }
-                else
+                if (value < 0)
                 {
                     throw new ArgumentOutOfRangeException("OnHandQuantity must be non-negative.");
                 }
+
+                mRules.RuleBroken("OnHandQuantity", false);
+                ((ProductProps)mProps).OnHandQuantity = value;
+                mIsDirty = true;
             }
         }
 
         public override object GetList()
         {
-            List<Product> products = new List<Product>();
-            List<ProductProps> props = (List<ProductProps>)mdbReadable.RetrieveAll();
-            foreach (ProductProps prop in props)
+            var products = new List<Product>();
+            var props = (List<ProductProps>)mdbReadable.RetrieveAll();
+
+            foreach (var prop in props)
             {
-                Product product = new Product(prop);
+                var product = new Product(prop);
                 products.Add(product);
             }
+
             return products;
         }
 
@@ -136,12 +118,60 @@ namespace MMABooksBusiness
         {
         }
 
-        public Product(string key) : base(key)
+        public Product(int key) : base(key.ToString())
         {
+            var productDB = new ProductDB();
+            var productProps = (ProductProps)productDB.Retrieve(key);
+            mProps = productProps ?? throw new Exception("Product not found.");
+        }
+
+        public Product(string productCode)
+        {
+            var productDB = new ProductDB();
+            var productProps = (ProductProps)productDB.RetrieveByProductCode(productCode);
+            mProps = productProps ?? throw new Exception("Product not found with the given code.");
         }
 
         private Product(ProductProps props) : base(props)
         {
+        }
+
+        public void Save()
+        {
+            if (string.IsNullOrWhiteSpace(ProductCode))
+            {
+                throw new Exception("ProductCode is required.");
+            }
+            if (string.IsNullOrWhiteSpace(Description))
+            {
+                throw new Exception("Description is required.");
+            }
+            if (UnitPrice <= 0)
+            {
+                throw new Exception("UnitPrice must be greater than zero.");
+            }
+            if (OnHandQuantity < 0)
+            {
+                throw new Exception("OnHandQuantity cannot be negative.");
+            }
+
+            if (mIsDirty)
+            {
+                if (ProductID == 0)
+                {
+                    mdbWriteable.Create(mProps);
+                }
+                else
+                {
+                    mdbWriteable.Update(mProps);
+                }
+                mIsDirty = false;
+            }
+        }
+
+        public void Delete()
+        {
+            mdbWriteable.Delete(mProps);
         }
     }
 }

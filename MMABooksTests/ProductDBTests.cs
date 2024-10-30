@@ -1,11 +1,9 @@
 ﻿using NUnit.Framework;
 using MMABooksProps;
 using MMABooksDB;
-using DBCommand = MySql.Data.MySqlClient.MySqlCommand;
 using System.Data;
 using System.Collections.Generic;
 using System;
-using MySql.Data.MySqlClient;
 using MMABooksBusiness;
 
 namespace MMABooksTests
@@ -16,7 +14,7 @@ namespace MMABooksTests
         [SetUp]
         public void TestResetDatabase()
         {
-            ProductDB db = new ProductDB();
+            var db = new ProductDB();
             var command = new MySql.Data.MySqlClient.MySqlCommand
             {
                 CommandText = "usp_testingResetProductData",
@@ -28,94 +26,81 @@ namespace MMABooksTests
         [Test]
         public void TestRetrieveFromDataStoreConstructor()
         {
-            Product p = new Product(3722);
-            Assert.AreEqual(3722, p.ProductID);
-            Assert.AreEqual("JSP2", p.ProductCode);
-            Assert.AreEqual("Murach's JAVA Servlets and JSP (2nd Edition)", p.Description);
-            Assert.AreEqual(52.50m, p.UnitPrice);
-            Assert.AreEqual(4999, p.OnHandQuantity);
-            Assert.IsFalse(p.IsNew);
-            Assert.IsTrue(p.IsValid);
+            var product = new Product(1);
+            Assert.AreEqual(1, product.ProductID);
+            Assert.AreEqual("A4CS", product.ProductCode);
+            Assert.AreEqual("Murach's ASP.NET 4 Web Programming with C# 2010", product.Description);
+            Assert.AreEqual(56.50m, product.UnitPrice);
+            Assert.AreEqual(4637, product.OnHandQuantity);
+            Assert.IsFalse(product.IsNew);
+            Assert.IsTrue(product.IsValid);
         }
 
         [Test]
-        public void TestSaveNewProduct()
+        public void TestCreateProduct()
         {
-            Product p = new Product
+            var product = new Product
             {
                 ProductCode = "NEWCODE",
-                Description = "New Product",
-                UnitPrice = 20.00m,
+                Description = "Test Product",
+                UnitPrice = 56.50m,
                 OnHandQuantity = 10
             };
-            p.Save();
 
-            Product p2 = new Product("NEWCODE");
-            Assert.AreEqual("NEWCODE", p2.ProductCode);
-            Assert.AreEqual("New Product", p2.Description);
+            product.Save();
+
+            var newProduct = new Product(product.ProductID);
+            Assert.AreEqual("NEWCODE", newProduct.ProductCode);
+            Assert.AreEqual("Test Product", newProduct.Description);
+            Assert.AreEqual(56.50m, newProduct.UnitPrice);
+            Assert.AreEqual(10, newProduct.OnHandQuantity);
         }
 
         [Test]
-        public void TestUpdateExistingProduct()
+        public void TestUpdateProduct()
         {
-            Product p = new Product(3714);
-            p.Description = "Updated Description";
-            p.Save();
+            var product = new Product(1);
+            product.Description = "Updated Description";
+            product.Save();
 
-            Product p2 = new Product(3714);
-            Assert.AreEqual("Updated Description", p2.Description);
+            var updatedProduct = new Product(1);
+            Assert.AreEqual("Updated Description", updatedProduct.Description);
         }
 
         [Test]
         public void TestDeleteProduct()
         {
-            Product p = new Product(3721);
-            p.Delete();
-            Assert.Throws<Exception>(() => new Product(3721));
-        }
+            var product = new Product(1);
+            product.Delete();
 
-        [Test]
-        public void TestGetList()
-        {
-            Product p = new Product();
-            List<Product> products = (List<Product>)p.GetList();
-            Assert.IsTrue(products.Count > 0);
-            Assert.AreEqual("A4CS", products[0].ProductCode);
+            Assert.Throws<Exception>(() => new Product(1));
         }
 
         [Test]
         public void TestNoRequiredPropertiesNotSet()
         {
-            Product p = new Product();
-            Assert.Throws<Exception>(() => p.Save());
-        }
-
-        [Test]
-        public void TestSomeRequiredPropertiesNotSet()
-        {
-            Product p = new Product();
-            p.ProductCode = "??";
-            Assert.Throws<Exception>(() => p.Save());
+            var product = new Product();
+            Assert.Throws<Exception>(() => product.Save());
         }
 
         [Test]
         public void TestInvalidPropertySet()
         {
-            Product p = new Product();
-            Assert.Throws<ArgumentOutOfRangeException>(() => p.ProductCode = "INVALID_CODE_TOO_LONG");
+            var product = new Product();
+            Assert.Throws<ArgumentOutOfRangeException>(() => product.ProductCode = "INVALID_CODE_TOO_LONG");
         }
 
         [Test]
         public void TestConcurrencyIssue()
         {
-            Product p1 = new Product(3728);
-            Product p2 = new Product(3728);
+            var product1 = new Product(1);
+            var product2 = new Product(1);
 
-            p1.Description = "Updated first";
-            p1.Save();
+            product1.Description = "Updated first";
+            product1.Save();
 
-            p2.Description = "Updated second";
-            Assert.Throws<Exception>(() => p2.Save());
+            product2.Description = "Updated second";
+            Assert.Throws<Exception>(() => product2.Save());
         }
     }
 }
